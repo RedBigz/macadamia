@@ -1,0 +1,19 @@
+{
+  "name": "macadamia",
+  "version": "1.0.0",
+  "description": "Macadamia Mod Loader for Cookie Clicker",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "python build.py"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.redbigz.com/red/macadamia"
+  },
+  "keywords": [
+    "cookieclicker",
+    "typescript"
+  ],
+  "author": "RedBigz",
+  "license": "MIT"
+}
