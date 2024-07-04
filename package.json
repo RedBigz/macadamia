@@ -15,5 +15,8 @@
     "typescript"
   ],
   "author": "RedBigz",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/cookieclicker": "^2.52.5"
+  }
 }
