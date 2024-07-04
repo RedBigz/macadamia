@@ -1,5 +1,3 @@
-Game.LoadMod("https://requirejs.org/docs/release/2.3.6/minified/require.js");
-
-setTimeout(() => {
+Game.LoadMod("https://requirejs.org/docs/release/2.3.6/minified/require.js", () => {
     /* REPLACE */
-}, 1000);
+});

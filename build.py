@@ -1,6 +1,7 @@
 import os, shutil
 
-shutil.rmtree("out")
+if os.path.exists("out"):
+    shutil.rmtree("out")
 
 os.makedirs("out", exist_ok=True)
 
