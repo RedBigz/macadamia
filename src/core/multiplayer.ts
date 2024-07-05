@@ -118,3 +118,50 @@ export class RPC {
         return this;
     }
 }
+
+export class SharedVariable<T> extends RPC {
+    #value: T;
+    settings: { defaultValue: T; sanitizer?: (value: T) => boolean; };
+    subscribers: ((value: T) => void)[] = [];
+
+    constructor(modID: string, name: string, settings: { defaultValue: any; sanitizer?: ((value: T) => boolean); }) {
+        super(modID, name);
+
+        this.#value = settings.defaultValue;
+        this.settings = settings;
+
+        this.setCallback((payload?: T) => {
+            if (payload) {
+                this.value = payload;
+            }
+
+            for (var subscriber in this.subscribers) {
+                this.subscribers[subscriber](this.value);
+            }
+        });
+    }
+
+    default() {
+        this.value = this.settings.defaultValue;
+    }
+
+    get value(): T {
+        return this.#value;
+    }
+    
+    set value(val: T) {
+        if (this.settings.sanitizer) {
+            if (!this.settings.sanitizer(val)) return;
+        }
+
+        this.#value = val;
+
+        this.send(val);
+    }
+
+    subscribe(callback: (value: T) => void): this {
+        this.subscribers.push(callback);
+
+        return this;
+    }
+}
