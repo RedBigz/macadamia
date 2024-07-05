@@ -7,7 +7,7 @@ os.makedirs("out", exist_ok=True)
 
 os.system("tsc")
 
-with open("./out/macadamia.js.part", "r") as macadamiapart, open("./out/macadamia.js", "w+") as macadamiafile, open("loader.js", "r") as loader:
+with open("./out/macadamia.js.part", "r", encoding="utf8") as macadamiapart, open("./out/macadamia.js", "w+", encoding="utf8") as macadamiafile, open("loader.js", "r", encoding="utf8") as loader:
     cpr = macadamiapart.read()
     macadamiafile.write(loader.read().replace("/* REPLACE */", cpr.replace("\n", "\n\t").strip() + ("\n\trequire([\"index\"]);" if "define(\"index" in cpr else "")))
 
