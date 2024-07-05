@@ -2,6 +2,17 @@ import { Logger } from "../logs";
 
 const logger = new Logger("macadamia::multiplayer");
 
+let connections: any[] = [];
+let rpcFunctions: { [modID: string]: { [rpcName: string]: (data?: any) => void } } = {};
+
+let localDataBeforeLastSync = {
+    cookies: Game.cookies
+};
+
+let netcodeSettings = {
+    syncPeriod: 1000
+}
+
 function loadPeerJS(): Promise<void> {
     return new Promise((resolve) => {
         Game.LoadMod("https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", () => {
@@ -13,8 +24,97 @@ function loadPeerJS(): Promise<void> {
 export async function loadMultiplayer() {
     logger.log("loading multiplayer...");
 
+    if (localStorage.getItem("multiplayer_id") == null)
+        localStorage.setItem("multiplayer_id", crypto.randomUUID());
+
     // load peerjs
     logger.log("waiting for peerjs...");
     await loadPeerJS();
     logger.log("peerjs loaded successfully!");
+
+    var peer = new (<any>window).Peer(`macadamia_${localStorage.getItem("multiplayer_id")}`);
+
+    logger.log("created peer");
+
+    (<any>window).peer = peer;
+
+    console.log(`%cmacadamia::multiplayer\n%c🌐 network\n%cpeer id: %c${peer.id}\n\n%c/!\\ warning\n%cyour IP address is visible to those who join you/know your peer id!\nDO NOT HAND IT TO ANYONE THAT YOU DO NOT TRUST.`, "font-size: 0.5rem;", "color: #7289da; font-size: 1rem;", "color: #d9b99b;", "color: #fff0db;", "color: #e22; font-size: 1rem; font-weight: 700; text-shadow: #F00 1px 0 3px;", "color: #e22")
+
+    let onConnection = (connection: any) => {
+        connection.on("open", () => {
+            logger.log(`received connection from ${connection.peer}`);
+
+            connections.push(connection); // add connection to connections array
+
+            connection.on("data", (data: any) => {
+                if (!data.type || !data.data) return;
+
+                switch (data.type) {
+                    case "macadamiaSync":
+                        // handle cookies
+                        if (!data.cookies) return;
+
+                        Game.Earn(data.cookies - localDataBeforeLastSync.cookies);
+
+                        localDataBeforeLastSync.cookies = data.cookies;
+                        break;
+                    case "rpc":
+                        // handle rpc
+                        if (!data.data.modID) return;
+                        if (!data.data.name) return;
+                        if (!rpcFunctions[data.data.modID]) return;
+                        if (!rpcFunctions[data.data.modID][data.data.name]) return;
+
+                        if (data.data.payload)
+                            rpcFunctions[data.data.modID][data.data.name](data.data.payload);
+                        else
+                            rpcFunctions[data.data.modID][data.data.name]();
+
+                        break;
+                    default:
+                        return;
+                }
+            });
+
+            connection.on("close", () => {
+                connections.splice(connections.indexOf(connection), 1);
+            });
+        });
+    };
+
+    peer.on("connection", onConnection);
+}
+
+function sendDataToPeers(data: any) {
+    for (var connection in connections) {
+        connections[connection].send(data);
+    }
+};
+
+export class RPC {
+    modID: string;
+    name: string;
+
+    constructor(modID: string, name: string) {
+        this.modID = modID;
+        this.name = name;
+    }
+
+    send(payload?: any) {
+        sendDataToPeers({
+            type: "rpc",
+            data: {
+                modID: this.modID,
+                name: this.name,
+                payload: payload
+            }
+        });
+    }
+
+    setCallback(callback: (payload?: any) => void): this {
+        rpcFunctions[this.modID] = rpcFunctions[this.modID] || {};
+        rpcFunctions[this.modID][this.name] = callback;
+
+        return this;
+    }
 }
