@@ -3,6 +3,7 @@ import { Raisin } from "./raisin";
 class Hook<CallbackType> {
     id: string;
     subscribers: ((message: CallbackType) => any)[];
+    enabled: boolean = true;
 
     constructor(id: string) {
         this.id = id;
@@ -14,6 +15,8 @@ class Hook<CallbackType> {
     }
 
     publish(message: CallbackType) {
+        if (!this.enabled) return;
+
         for (var i in this.subscribers) {
             this.subscribers[i](message);
         }
@@ -30,8 +33,9 @@ class Hook<CallbackType> {
     }
 }
 
-class HookList {
+export class HookList {
     hooks: { [id: string]: Hook<any> };
+    #enabled: boolean = true;
 
     constructor() {
         this.hooks = {};
@@ -44,6 +48,17 @@ class HookList {
 
     hook(id: string) {
         return this.hooks[id];
+    }
+
+    get enabled() {
+        return this.#enabled;
+    }
+
+    set enabled(value: boolean) {
+        this.#enabled = value;
+        for (var i in this.hooks) {
+            this.hooks[i].enabled = value;
+        }
     }
 }
 
