@@ -10,8 +10,11 @@ let localDataBeforeLastSync = {
 };
 
 let netcodeSettings = {
-    syncPeriod: 1000
+    syncPeriod: 1000,
+    hosting: true
 }
+
+var alreadyLoadedSave = false;
 
 function loadPeerJS(): Promise<void> {
     return new Promise((resolve) => {
@@ -40,11 +43,29 @@ export async function loadMultiplayer() {
 
     console.log(`%cmacadamia::multiplayer\n%c🌐 network\n%cpeer id: %c${peer.id}\n\n%c/!\\ warning\n%cyour IP address is visible to those who join you/know your peer id!\nDO NOT HAND IT TO ANYONE THAT YOU DO NOT TRUST.`, "font-size: 0.5rem;", "color: #7289da; font-size: 1rem;", "color: #d9b99b;", "color: #fff0db;", "color: #e22; font-size: 1rem; font-weight: 700; text-shadow: #F00 1px 0 3px;", "color: #e22")
 
-    let onConnection = (connection: any) => {
+    let onConnection = (connection: any, connectionFromNewPeer: boolean) => {
         connection.on("open", () => {
+            if (connections.length < 4) {
+                connection.close();
+                logger.log(`received connection from ${connection.peer}, but kicked because server is full`);
+                return;
+            }
+
             logger.log(`received connection from ${connection.peer}`);
 
+            if (!connectionFromNewPeer) {
+                sendDataToPeers({ type: "newPeer", peer: connection.peer })
+
+                for (var otherConnection in connections) {
+                    connection.send({ type: "newPeer", peer: connections[otherConnection].peer });
+                }
+            }
+
             connections.push(connection); // add connection to connections array
+
+            if (netcodeSettings.hosting) {
+                sendDataToPeers({ type: "saveData", data: Game.WriteSave(1) });
+            }
 
             connection.on("data", (data: any) => {
                 if (!data.type || !data.data) return;
@@ -65,12 +86,25 @@ export async function loadMultiplayer() {
                         if (!rpcFunctions[data.data.modID]) return;
                         if (!rpcFunctions[data.data.modID][data.data.name]) return;
 
+                        if ((<any>window).MacadamiaModList[data.data.modID].enabled == false) return;
+
                         if (data.data.payload)
                             rpcFunctions[data.data.modID][data.data.name](data.data.payload);
                         else
                             rpcFunctions[data.data.modID][data.data.name]();
 
                         break;
+                    case "saveData":
+                        if (data.data && !alreadyLoadedSave && !netcodeSettings.hosting) {
+                            Game.LoadSave(data.data);
+                            alreadyLoadedSave = true;
+                        }
+                        break;
+                    case "newPeer":
+                        if (data.data && typeof data.data === "string" && connections.length < 4) {
+                            var conn = peer.connect(data.data);
+                            onConnection(conn, true);
+                        }
                     default:
                         return;
                 }
@@ -82,7 +116,7 @@ export async function loadMultiplayer() {
         });
     };
 
-    peer.on("connection", onConnection);
+    peer.on("connection", (conn: any) => onConnection(conn, false));
 }
 
 function sendDataToPeers(data: any) {
@@ -148,7 +182,7 @@ export class SharedVariable<T> extends RPC {
     get value(): T {
         return this.#value;
     }
-    
+
     set value(val: T) {
         if (this.settings.sanitizer) {
             if (!this.settings.sanitizer(val)) return;
