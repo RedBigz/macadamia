@@ -24,6 +24,26 @@ function loadPeerJS(): Promise<void> {
     });
 }
 
+var playerListElement = document.createElement("div");
+playerListElement.style.cssText = "position: fixed; top: 40px; left: 10px; color: yellow; text-shadow: black 0 0 5px; font-family: Tahoma; z-index: 9999;";
+document.body.appendChild(playerListElement);
+
+(<any>window).ShowInvitePrompt = () => {
+    Game.Prompt(`<h3>Invite Friends</h3><br><div class=block><b>Peer ID</b><br><code style='font-family: monospace;'>${(<any>window).peer.id}</code></div><span style='color:#e33;font-weight:700;'><br>Your IP address is visible to those who join you/know your peer id! DO NOT HAND IT TO ANYONE THAT YOU DO NOT TRUST.</span><br>`, [])
+}
+
+function rebuildPlayerList() {
+    let output = `${(<any>window).peer.id.slice(0, 14)}... (you)`;
+
+    for (var connection in connections) {
+        output += `\n${connections[connection].peer.slice(0, 14)}...`;
+    }
+
+    playerListElement.innerText = output;
+
+    playerListElement.innerHTML += "<br><br><a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>"
+}
+
 export async function loadMultiplayer() {
     logger.log("loading multiplayer...");
 
@@ -41,11 +61,13 @@ export async function loadMultiplayer() {
 
     (<any>window).peer = peer;
 
+    rebuildPlayerList();
+
     console.log(`%cmacadamia::multiplayer\n%c🌐 network\n%cpeer id: %c${peer.id}\n\n%c/!\\ warning\n%cyour IP address is visible to those who join you/know your peer id!\nDO NOT HAND IT TO ANYONE THAT YOU DO NOT TRUST.`, "font-size: 0.5rem;", "color: #7289da; font-size: 1rem;", "color: #d9b99b;", "color: #fff0db;", "color: #e22; font-size: 1rem; font-weight: 700; text-shadow: #F00 1px 0 3px;", "color: #e22")
 
     let onConnection = (connection: any, connectionFromNewPeer: boolean) => {
         connection.on("open", () => {
-            if (connections.length < 4) {
+            if (connections.length >= 4) {
                 connection.close();
                 logger.log(`received connection from ${connection.peer}, but kicked because server is full`);
                 return;
@@ -62,6 +84,8 @@ export async function loadMultiplayer() {
             }
 
             connections.push(connection); // add connection to connections array
+
+            rebuildPlayerList();
 
             if (netcodeSettings.hosting) {
                 sendDataToPeers({ type: "saveData", data: Game.WriteSave(1) });
@@ -112,6 +136,7 @@ export async function loadMultiplayer() {
 
             connection.on("close", () => {
                 connections.splice(connections.indexOf(connection), 1);
+                rebuildPlayerList();
             });
         });
     };
