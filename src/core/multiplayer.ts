@@ -1,5 +1,6 @@
 import { Logger } from "../logs";
 import { Raisin } from "../raisin";
+import { injectCSS } from "../util";
 
 const logger = new Logger("macadamia::multiplayer");
 
@@ -28,6 +29,7 @@ function loadPeerJS(): Promise<void> {
 
 var playerListElement = document.createElement("div");
 playerListElement.style.cssText = "position: fixed; top: 40px; left: 10px; color: yellow; text-shadow: black 0 0 5px; font-family: Tahoma; z-index: 9999;";
+playerListElement.id = "playerList";
 document.body.appendChild(playerListElement);
 
 (<any>window).ShowInvitePrompt = () => {
@@ -78,18 +80,24 @@ function rebuildPlayerList() {
     }
 
     playerListElement.innerText = output;
+    
+    var menuArea = "";
+
+    menuArea += "<a class='option' onclick='window.ShowModManager(\"mods\")'>☰ Mods & Settings</a>";
+
+    menuArea += "<a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>";
 
     if (!netcodeSettings.hosting) {
         if (connections.length > 0)
-            playerListElement.innerHTML = "&nbsp;<a class='option' onclick='window.CloseConnection()'>✕ Leave</a>" + playerListElement.innerHTML;
+            menuArea += "<a class='option' onclick='window.CloseConnection()'>✕ Leave</a>";
     }
 
     if (connections.length == 0) {
-        playerListElement.innerHTML = "&nbsp;<a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>" + playerListElement.innerHTML;
+        menuArea += "<a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>";
         netcodeSettings.hosting = true;
     }
 
-    playerListElement.innerHTML = "<br><br><a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>" + playerListElement.innerHTML;
+    playerListElement.innerHTML = menuArea + "<br><br>" + playerListElement.innerHTML;
 }
 
 export async function loadMultiplayer() {
@@ -108,6 +116,10 @@ export async function loadMultiplayer() {
     logger.log("created peer");
 
     (<any>window).peer = peer;
+
+    logger.log("loading player list...");
+
+    injectCSS("#playerList { pointer-events: none; } #playerList > * { pointer-events: auto; }");
 
     rebuildPlayerList();
 
