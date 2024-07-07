@@ -2,7 +2,7 @@ import { loadCore } from "./core/core";
 import { init, log, welcome } from "./logs";
 import { Mod } from "./mod";
 
-(window as any).Macadamia = {
+(<any>window).Macadamia = {
     Version: "0.0.1",
     Defaults: {
         // Defaults for Macadamia will go here.
@@ -11,7 +11,7 @@ import { Mod } from "./mod";
     async register(mod: { new(uuid: string): Mod }, manifest: { uuid: string; }) {
         var currMod = new mod(manifest.uuid);
 
-        (window as any).MacadamiaModList[manifest.uuid] = {
+        (<any>window).MacadamiaModList[manifest.uuid] = {
             mod: currMod,
             manifest: manifest,
             enabled: true
@@ -25,7 +25,7 @@ import { Mod } from "./mod";
     },
     async disableMod(uuid: string) {
         if (uuid == "macadamia") return;
-        var mod = (window as any).MacadamiaModList[uuid];
+        var mod = (<any>window).MacadamiaModList[uuid];
         if (!mod) {
             log("macadamia", `mod ${uuid} not found.`);
             return;
@@ -39,7 +39,7 @@ import { Mod } from "./mod";
     }
 };
 
-(window as any).MacadamiaModList = {macadamia: {mod: null, manifest: null, enabled: true}}; // { [key: string]: { mod: Mod, manifest: { uuid: string; }, enabled: boolean } }
+(<any>window).MacadamiaModList = {macadamia: {mod: null, manifest: null, enabled: true}}; // { [key: string]: { mod: Mod, manifest: { uuid: string; }, enabled: boolean } }
 
 async function main() {
     init();
