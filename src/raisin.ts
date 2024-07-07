@@ -52,7 +52,7 @@ export class Raisin {
             var inject = code;
         } else {
             var codeParams = getParamNames(code).join(",");
-            var inject = `([${codeParams}] = ((${codeParams}) => {${getFunctionBody(code)};return [${codeParams}]})(${codeParams}));`;
+            var inject = `([${codeParams}] = ((${codeParams}) => {${getFunctionBody(code)};return [${codeParams}]}).call(this, ${codeParams}));`;
         }
 
         // console.log(inject)
