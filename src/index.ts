@@ -1,5 +1,6 @@
 import { clean } from "./cleaner";
 import { loadCore } from "./core/core";
+import { ModManifest } from "./core/modManager";
 import { init, log, welcome } from "./logs";
 import { Mod } from "./mod";
 
@@ -9,7 +10,7 @@ import { Mod } from "./mod";
         // Defaults for Macadamia will go here.
     },
     Mod: Mod,
-    async register(mod: { new(uuid: string): Mod }, manifest: { uuid: string; }) {
+    async register(mod: { new(uuid: string): Mod }, manifest: ModManifest) {
         var currMod = new mod(manifest.uuid);
 
         (<any>window).MacadamiaModList[manifest.uuid] = {
@@ -37,10 +38,36 @@ import { Mod } from "./mod";
         await mod.mod.sleep();
 
         log("macadamia", `disabled ${uuid}.`);
+    },
+    enableMod(uuid: string) {
+        if (uuid == "macadamia") return;
+        var mod = (<any>window).MacadamiaModList[uuid];
+        if (!mod) {
+            log("macadamia", `mod ${uuid} not found.`);
+            return;
+        }
+
+        mod.enabled = true;
+        mod.mod.hooks.enabled = true;
+        log("macadamia", `enabled ${uuid}.`);
+    },
+    toggleMod(uuid: string) {
+        if ((<any>window).MacadamiaModList[uuid].enabled) {
+            (<any>window).Macadamia.disableMod(uuid);
+        } else {
+            (<any>window).Macadamia.enableMod(uuid);
+        }
     }
 };
 
-(<any>window).MacadamiaModList = {macadamia: {mod: null, manifest: null, enabled: true}}; // { [key: string]: { mod: Mod, manifest: { uuid: string; }, enabled: boolean } }
+(<any>window).MacadamiaModList = {macadamia: {mod: null, manifest: {
+    uuid: "macadamia",
+    name: "Macadamia",
+    description: "Macadamia",
+    author: "RedBigz",
+    version: "1.0.0beta",
+    icon: "https://redbigz.com/lfs/macadamia/res/logo.png"
+} as ModManifest, enabled: true}}; // { [key: string]: { mod: Mod, manifest: { uuid: string; }, enabled: boolean } }
 
 async function main() {
     clean();
