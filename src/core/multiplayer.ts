@@ -7,7 +7,7 @@ let connections: any[] = [];
 let rpcFunctions: { [modID: string]: { [rpcName: string]: (data?: any) => void } } = {};
 
 let netcodeSettings = {
-    syncPeriod: 1000,
+    syncPeriod: 60000,
     hosting: true,
     host: ""
 };
@@ -83,11 +83,11 @@ function rebuildPlayerList() {
 
     if (!netcodeSettings.hosting) {
         if (connections.length > 0)
-            playerListElement.innerHTML += "<br><br><a class='option' onclick='window.CloseConnection()'>✕ Leave</a>";
+            playerListElement.innerHTML += "&nbsp;<a class='option' onclick='window.CloseConnection()'>✕ Leave</a>";
     }
 
     if (connections.length == 0) {
-        playerListElement.innerHTML += "<br><br><a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>";
+        playerListElement.innerHTML += "&nbsp;<a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>";
         netcodeSettings.hosting = true;
     }
 }
@@ -142,16 +142,16 @@ export async function loadMultiplayer() {
             }
 
             connection.on("data", (data: any) => {
-                console.log(data)
+                // console.log(data)
                 if (!data.type || !data.data) return;
 
                 switch (data.type) {
                     case "macadamiaSync":
                         // handle cookies
                         if (connection.peer != netcodeSettings.host) return;
-                        if (!data.save) return;
+                        if (!data.data) return;
 
-                        Game.LoadSave(data.save);
+                        Game.LoadSave(data.data);
 
                         // Game.cookies = data.cookies;
                         break;
@@ -308,6 +308,7 @@ export async function loadMultiplayer() {
                 if (!this.vanilla) return [];
                 (<any>window).buildingUpgradeRPC.send({ id: this.id });
             })
+            .insertPerSignature(/(?<!Ga)(?<!miniga)me\./g, `Game.ObjectsById[${object.id}].`, false)
             .compile() as any;
     }
 }
@@ -406,7 +407,7 @@ export class SharedVariable<T> extends RPC {
     }
 }
 
-setTimeout(() => {
+setInterval(() => {
     if (netcodeSettings.hosting)
         sendDataToPeers({
             type: "macadamiaSync",
