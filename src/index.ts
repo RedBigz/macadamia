@@ -1,3 +1,4 @@
+import { clean } from "./cleaner";
 import { loadCore } from "./core/core";
 import { init, log, welcome } from "./logs";
 import { Mod } from "./mod";
@@ -42,6 +43,8 @@ import { Mod } from "./mod";
 (<any>window).MacadamiaModList = {macadamia: {mod: null, manifest: null, enabled: true}}; // { [key: string]: { mod: Mod, manifest: { uuid: string; }, enabled: boolean } }
 
 async function main() {
+    clean();
+
     init();
 
     await loadCore();
