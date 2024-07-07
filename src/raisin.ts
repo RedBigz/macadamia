@@ -73,13 +73,13 @@ export class Raisin {
      * @param {boolean} [replaceLine=false] - Whether to replace the existing code at the line.
      * @return {this}
      */
-    insertPerSignature(signature: string, code: string | Function, entireLine = true, replaceLine = false): this {
+    insertPerSignature(signature: string | RegExp, code: string | Function, entireLine = true, replaceLine = false): this {
         for (var i in this.body) {
             if (this.body[i].match(signature)) {
                 if (entireLine)
                     this.insert(i + replaceLine ? 0 : 1, code, replaceLine);
                 else
-                    this.body[i] = this.body[i].replace(signature, <string>code);
+                    this.body[i] = this.body[i].replaceAll(signature, <string>code);
             }
         }
 
