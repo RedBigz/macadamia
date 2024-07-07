@@ -1,6 +1,7 @@
 import { RPC, SharedVariable } from "./core/multiplayer";
 import { buildHooks, HookList } from "./hooks";
 import { Logger } from "./logs";
+import { ModRaisin } from "./raisin";
 
 export class Mod {
     uuid: string;
@@ -26,5 +27,9 @@ export class Mod {
 
     createRPC(name: string) {
         return new RPC(this.uuid, name);
+    }
+
+    createRaisin(func: Function) {
+        return new ModRaisin(this.uuid, func);
     }
 }

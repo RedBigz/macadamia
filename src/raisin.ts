@@ -21,6 +21,8 @@ function getFunctionBody(func: Function) {
     return fnStr.substring(start, end).trim();
 }
 
+(<any>window).RaisinUUIDs = {};
+
 export class Raisin {
     body: string[];
     params: string[];
@@ -102,5 +104,38 @@ export class Raisin {
      */
     compile() {
         return new Function(...this.params, this.body.join("\n"))
+    }
+}
+
+export class ModRaisin extends Raisin {
+    modID: string
+
+    constructor(modID: string, func: Function) {
+        super(func);
+        this.modID = modID;
+    }
+
+    insert(line: number, code: string | Function, replace?: boolean): this {
+        if (line < 0) {
+            line = this.body.length + 1 + line;
+        }
+
+        if (typeof code === "string") {
+            var inject = code;
+        } else {
+            var codeParams = getParamNames(code).join(",");
+            var inject = `if (window.MacadamiaModList['${this.modID}'].enabled) ([${codeParams}] = ((${codeParams}) => {${getFunctionBody(code)};return [${codeParams}]}).call(this, ${codeParams}));`;
+        }
+
+        // console.log(inject)
+
+        this.body.splice(line, replace ? 1 : 0, inject);
+
+        return this;
+    }
+
+    transpile(transpiler: Function): this {
+        this.body = ["if (window.MacadamiaModList['" + this.modID + "'].enabled) {", ...transpiler(this.body), "else {", ...this.body, "}"];
+        return this;
     }
 }
