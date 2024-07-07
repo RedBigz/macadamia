@@ -1,4 +1,5 @@
 import { Logger } from "../logs";
+import { Raisin } from "../raisin";
 
 const logger = new Logger("macadamia::multiplayer");
 
@@ -23,6 +24,8 @@ function loadPeerJS(): Promise<void> {
     });
 }
 
+(<any>window).DO_NOT_RPC = false;
+
 var playerListElement = document.createElement("div");
 playerListElement.style.cssText = "position: fixed; top: 40px; left: 10px; color: yellow; text-shadow: black 0 0 5px; font-family: Tahoma; z-index: 9999;";
 document.body.appendChild(playerListElement);
@@ -31,10 +34,40 @@ document.body.appendChild(playerListElement);
     Game.Prompt(`<h3>Invite Friends</h3><br><div class=block><b>Peer ID</b><br><code style='font-family: monospace; user-select: text;'>${(<any>window).peer.id}</code></div><span style='color:#e33;font-weight:700;'><br>Your IP address is visible to those who join you/know your peer id! DO NOT HAND IT TO ANYONE THAT YOU DO NOT TRUST.</span><br>`, [])
 }
 
+var saveToOld: string = Game.SaveTo;
+
 (<any>window).CloseConnection = () => {
     for (var connection in connections) {
         connections[connection].close();
     }
+
+    Game.SaveTo = saveToOld;
+    localStorage.removeItem(Game.SaveTo);
+}
+
+(<any>window).JoinGame = () => {
+    Game.Prompt("<h3>Join Game</h3><br>Macadamia uses a P2P system for playing multiplayer. <b>Your IP address will be shared with users in your lobby due to how the networking is managed.</b><br><br><input id=peeridinput class=block placeholder='Peer ID' style='text-align:center;background-color:rgba(0,0,0,0);color:white;width:120px;margin-bottom:10px;'>", [["Join", "window.StartJoinGame(document.getElementById('peeridinput').value)"]])
+}
+
+(<any>window).StartJoinGame = (peerID: string) => {
+    if (peerID == (<any>window).peer.id) {
+        Game.Prompt("You can't join yourself!", []);
+        return;
+    }
+
+    if (peerID == "") {
+        Game.Prompt("Invalid peer ID!", []);
+        return;
+    }
+
+    for (var connection in connections) {
+        connections[connection].close();
+    }
+
+    connections = [];
+
+    Game.SaveTo = peerID;
+    (<any>window).CreateConnection(peerID);
 }
 
 function rebuildPlayerList() {
@@ -49,7 +82,13 @@ function rebuildPlayerList() {
     playerListElement.innerHTML += "<br><br><a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>";
 
     if (!netcodeSettings.hosting) {
-        playerListElement.innerHTML += "<br><br><a class='option' onclick='window.CloseConnection()'>✕ Leave</a>";
+        if (connections.length > 0)
+            playerListElement.innerHTML += "<br><br><a class='option' onclick='window.CloseConnection()'>✕ Leave</a>";
+    }
+
+    if (connections.length == 0) {
+        playerListElement.innerHTML += "<br><br><a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>";
+        netcodeSettings.hosting = true;
     }
 }
 
@@ -82,13 +121,15 @@ export async function loadMultiplayer() {
                 return;
             }
 
-            logger.log(`received connection from ${connection.peer}`);
+            if (connection.peer != (<any>window).peer.id) {
+                logger.log(`received connection from ${connection.peer}`);
+            }
 
             if (!connectionFromNewPeer) {
                 sendDataToPeers({ type: "newPeer", peer: connection.peer })
 
                 for (var otherConnection in connections) {
-                    connection.send({ type: "newPeer", peer: connections[otherConnection].peer });
+                    connection.send({ type: "newPeer", data: connections[otherConnection].peer });
                 }
             }
 
@@ -97,19 +138,22 @@ export async function loadMultiplayer() {
             rebuildPlayerList();
 
             if (netcodeSettings.hosting) {
-                sendDataToPeers({ type: "saveData", data: Game.WriteSave(1) });
+                connection.send({ type: "saveData", data: Game.WriteSave(1) });
             }
 
             connection.on("data", (data: any) => {
+                console.log(data)
                 if (!data.type || !data.data) return;
 
                 switch (data.type) {
                     case "macadamiaSync":
                         // handle cookies
                         if (connection.peer != netcodeSettings.host) return;
-                        if (!data.cookies) return;
+                        if (!data.save) return;
 
-                        Game.cookies = data.cookies;
+                        Game.LoadSave(data.save);
+
+                        // Game.cookies = data.cookies;
                         break;
                     case "rpc":
                         // handle rpc
@@ -150,6 +194,7 @@ export async function loadMultiplayer() {
     };
 
     peer.on("connection", (conn: any) => onConnection(conn, false));
+    (<any>window).CreateConnection = (id: string) => { onConnection(peer.connect(id), true); netcodeSettings.host = id; netcodeSettings.hosting = false; alreadyLoadedSave = false; };
 
     // establish hooks
 
@@ -166,6 +211,104 @@ export async function loadMultiplayer() {
 
     bigCookie.onclick = (event: MouseEvent) => {
         clickRPC.rpc();
+    }
+
+    (<any>window).upgradeRPC = new RPC("macadamia", "upgradePurchased");
+    (<any>window).upgradeRPC.setCallback((data: any) => {
+        var upgrade = Game.UpgradesById[data.id];
+        if (!upgrade) return;
+
+        if (!upgrade.vanilla) return;
+
+        if (upgrade.bought) return;
+
+        (<any>window).DO_NOT_RPC = true;
+        upgrade.buy(false);
+        (<any>window).DO_NOT_RPC = false;
+    });
+
+    Game.Upgrade.prototype.buy = new Raisin(Game.Upgrade.prototype.buy)
+        .insert(0, function (this: Game.Upgrade) {
+            if (!this.vanilla) return;
+            (<any>window).upgradeRPC.send({ id: this.id });
+        })
+        .compile() as any;
+
+    // On upgrade purchased
+    for (var objectID in Game.ObjectsById) {
+        var object = Game.ObjectsById[objectID];
+
+        // On building purchased
+        (<any>window).buildingRPC = new RPC("macadamia", "buildingPurchased");
+        (<any>window).buildingRPC.setCallback((data: any) => {
+            if (!data.amount) return;
+
+            var building = Game.ObjectsById[data.id];
+            if (!building) return;
+
+            if (!building.vanilla) return;
+
+            (<any>window).DO_NOT_RPC = true; // TODO: Find a better way to do this
+            building.buy(data.amount);
+            (<any>window).DO_NOT_RPC = false;
+        });
+
+        object.buy = new Raisin(object.buy)
+            .insert(0, function (this: Game.Object) {
+                if (!this.vanilla) return [];
+                if (Game.buyMode == -1) return []; // sell mode
+
+                (<any>window).buildingRPC.send({ id: this.id, amount: Game.buyBulk });
+            })
+            .compile() as any;
+
+        // On building sold
+        (<any>window).buildingSellRPC = new RPC("macadamia", "buildingSold");
+        (<any>window).buildingSellRPC.setCallback((data: any) => {
+            if (!data.amount) return;
+
+            var building = Game.ObjectsById[data.id];
+            if (!building) return;
+
+            if (!building.vanilla) return;
+
+            (<any>window).DO_NOT_RPC = true;
+            building.sell(data.amount, undefined);
+            (<any>window).DO_NOT_RPC = false;
+        });
+
+        object.sell = new Raisin(object.sell)
+            .insert(0, function (this: Game.Object) {
+                if (!this.vanilla) return [];
+
+                (<any>window).buildingSellRPC.send({ id: this.id, amount: Game.buyBulk });
+            })
+            .compile() as any;
+
+        // On building upgrade
+        (<any>window).buildingUpgradeRPC = new RPC("macadamia", "buildingUpgrade");
+        (<any>window).buildingUpgradeRPC.setCallback((data: any) => {
+            if (!data.id) return;
+
+            var building = Game.ObjectsById[data.id];
+            if (!building) return;
+
+            if (!building.vanilla) return;
+
+            var oldLumps = Game.prefs.askLumps;
+            Game.prefs.askLumps = <any>false;
+            (<any>window).DO_NOT_RPC = true;
+            building.levelUp();
+            (<any>window).DO_NOT_RPC = false;
+            Game.prefs.askLumps = oldLumps;
+        });
+
+        object.levelUp = new Raisin(object.levelUp)
+            .insert(0, function (this: Game.Object) {
+                if (!this.vanilla) return [];
+                (<any>window).buildingUpgradeRPC.send({ id: this.id });
+            })
+            .compile() as any;
     }
 }
 
@@ -185,6 +328,8 @@ export class RPC {
     }
 
     send(payload?: any) {
+        if ((<any>window).DO_NOT_RPC) return;
+
         sendDataToPeers({
             type: "rpc",
             data: {
@@ -196,6 +341,8 @@ export class RPC {
     }
 
     rpc(payload?: any) {
+        if ((<any>window).DO_NOT_RPC) return;
+
         this.send(payload);
 
         if (payload)
@@ -258,3 +405,11 @@ export class SharedVariable<T> extends RPC {
         return this;
     }
 }
+
+setTimeout(() => {
+    if (netcodeSettings.hosting)
+        sendDataToPeers({
+            type: "macadamiaSync",
+            data: Game.WriteSave(1)
+        });
+}, netcodeSettings.syncPeriod);
