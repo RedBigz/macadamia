@@ -4,7 +4,7 @@
   "description": "Macadamia Mod Loader for Cookie Clicker",
   "main": "./src/index.ts",
   "scripts": {
-    "build": "python build.py && npm run minify",
+    "build": "python build.py",
     "minify": "npx uglifyjs --compress --mangle --output ./out/macadamia.min.js ./out/macadamia.js"
   },
   "repository": {
