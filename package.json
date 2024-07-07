@@ -4,7 +4,8 @@
   "description": "Macadamia Mod Loader for Cookie Clicker",
   "main": "./src/index.ts",
   "scripts": {
-    "build": "python build.py"
+    "build": "python build.py && npm run minify",
+    "minify": "npx uglifyjs --compress --mangle --output ./out/macadamia.min.js ./out/macadamia.js"
   },
   "repository": {
     "type": "git",
@@ -17,6 +18,7 @@
   "author": "RedBigz",
   "license": "MIT",
   "devDependencies": {
-    "@types/cookieclicker": "^2.52.5"
+    "@types/cookieclicker": "^2.52.5",
+    "uglify-js": "^3.18.0"
   }
 }
