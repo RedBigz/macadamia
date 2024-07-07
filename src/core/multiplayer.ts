@@ -79,17 +79,17 @@ function rebuildPlayerList() {
 
     playerListElement.innerText = output;
 
-    playerListElement.innerHTML += "<br><br><a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>";
-
     if (!netcodeSettings.hosting) {
         if (connections.length > 0)
-            playerListElement.innerHTML += "&nbsp;<a class='option' onclick='window.CloseConnection()'>✕ Leave</a>";
+            playerListElement.innerHTML = "&nbsp;<a class='option' onclick='window.CloseConnection()'>✕ Leave</a>" + playerListElement.innerHTML;
     }
 
     if (connections.length == 0) {
-        playerListElement.innerHTML += "&nbsp;<a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>";
+        playerListElement.innerHTML = "&nbsp;<a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>" + playerListElement.innerHTML;
         netcodeSettings.hosting = true;
     }
+
+    playerListElement.innerHTML = "<br><br><a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>" + playerListElement.innerHTML;
 }
 
 export async function loadMultiplayer() {
