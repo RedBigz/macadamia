@@ -12,7 +12,9 @@ let localDataBeforeLastSync = {
 let netcodeSettings = {
     syncPeriod: 1000,
     hosting: true
-}
+};
+
+(<any>window).inGame = false;
 
 var alreadyLoadedSave = false;
 
@@ -29,7 +31,13 @@ playerListElement.style.cssText = "position: fixed; top: 40px; left: 10px; color
 document.body.appendChild(playerListElement);
 
 (<any>window).ShowInvitePrompt = () => {
-    Game.Prompt(`<h3>Invite Friends</h3><br><div class=block><b>Peer ID</b><br><code style='font-family: monospace;'>${(<any>window).peer.id}</code></div><span style='color:#e33;font-weight:700;'><br>Your IP address is visible to those who join you/know your peer id! DO NOT HAND IT TO ANYONE THAT YOU DO NOT TRUST.</span><br>`, [])
+    Game.Prompt(`<h3>Invite Friends</h3><br><div class=block><b>Peer ID</b><br><code style='font-family: monospace; user-select: text;'>${(<any>window).peer.id}</code></div><span style='color:#e33;font-weight:700;'><br>Your IP address is visible to those who join you/know your peer id! DO NOT HAND IT TO ANYONE THAT YOU DO NOT TRUST.</span><br>`, [])
+}
+
+(<any>window).CloseConnection = () => {
+    for (var connection in connections) {
+        connections[connection].close();
+    }
 }
 
 function rebuildPlayerList() {
@@ -41,7 +49,11 @@ function rebuildPlayerList() {
 
     playerListElement.innerText = output;
 
-    playerListElement.innerHTML += "<br><br><a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>"
+    playerListElement.innerHTML += "<br><br><a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>";
+
+    if (!netcodeSettings.hosting) {
+        playerListElement.innerHTML += "<br><br><a class='option' onclick='window.CloseConnection()'>✕ Leave</a>";
+    }
 }
 
 export async function loadMultiplayer() {
@@ -142,6 +154,23 @@ export async function loadMultiplayer() {
     };
 
     peer.on("connection", (conn: any) => onConnection(conn, false));
+
+    // establish hooks
+
+    // On click cookie
+    var clickRPC = new RPC("macadamia", "clickCookie");
+    clickRPC.setCallback(() => {
+        Game.ClickCookie();
+    })
+
+    var bigCookie: HTMLElement = <HTMLElement>document.querySelector("button#bigCookie");
+
+    // @ts-ignore
+    bigCookie.removeEventListener("click", Game.ClickCookie);
+
+    bigCookie.onclick = (event: MouseEvent) => {
+        clickRPC.rpc();
+    }
 }
 
 function sendDataToPeers(data: any) {
@@ -168,6 +197,15 @@ export class RPC {
                 payload: payload
             }
         });
+    }
+
+    rpc(payload?: any) {
+        this.send(payload);
+
+        if (payload)
+            rpcFunctions[this.modID][this.name](payload);
+        else
+            rpcFunctions[this.modID][this.name]();
     }
 
     setCallback(callback: (payload?: any) => void): this {
