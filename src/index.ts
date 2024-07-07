@@ -24,6 +24,7 @@ import { Mod } from "./mod";
         log("macadamia", `registered ${manifest.uuid}.`);
     },
     async disableMod(uuid: string) {
+        if (uuid == "macadamia") return;
         var mod = (window as any).MacadamiaModList[uuid];
         if (!mod) {
             log("macadamia", `mod ${uuid} not found.`);
@@ -38,7 +39,7 @@ import { Mod } from "./mod";
     }
 };
 
-(window as any).MacadamiaModList = {}; // { [key: string]: { mod: Mod, manifest: { uuid: string; }, enabled: boolean } }
+(window as any).MacadamiaModList = {macadamia: {mod: null, manifest: null, enabled: true}}; // { [key: string]: { mod: Mod, manifest: { uuid: string; }, enabled: boolean } }
 
 async function main() {
     init();
