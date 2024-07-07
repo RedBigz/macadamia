@@ -5,13 +5,10 @@ const logger = new Logger("macadamia::multiplayer");
 let connections: any[] = [];
 let rpcFunctions: { [modID: string]: { [rpcName: string]: (data?: any) => void } } = {};
 
-let localDataBeforeLastSync = {
-    cookies: Game.cookies
-};
-
 let netcodeSettings = {
     syncPeriod: 1000,
-    hosting: true
+    hosting: true,
+    host: ""
 };
 
 (<any>window).inGame = false;
@@ -109,11 +106,10 @@ export async function loadMultiplayer() {
                 switch (data.type) {
                     case "macadamiaSync":
                         // handle cookies
+                        if (connection.peer != netcodeSettings.host) return;
                         if (!data.cookies) return;
 
-                        Game.Earn(data.cookies - localDataBeforeLastSync.cookies);
-
-                        localDataBeforeLastSync.cookies = data.cookies;
+                        Game.cookies = data.cookies;
                         break;
                     case "rpc":
                         // handle rpc
@@ -131,7 +127,7 @@ export async function loadMultiplayer() {
 
                         break;
                     case "saveData":
-                        if (data.data && !alreadyLoadedSave && !netcodeSettings.hosting) {
+                        if (data.data && !alreadyLoadedSave && !netcodeSettings.hosting && connection.peer == netcodeSettings.host) {
                             Game.LoadSave(data.data);
                             alreadyLoadedSave = true;
                         }
