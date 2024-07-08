@@ -116,8 +116,8 @@ function rebuildPlayerList() {
     }
 
     if (netcodeSettings.hosting) {
-        menuArea += "<a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>";
         menuArea += "<a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>";
+        menuArea += "<a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>";
     }
 
     menuArea += "<a class='option' onclick='window.ChangeUsername()'>✎</a>";
