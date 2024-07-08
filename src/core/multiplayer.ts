@@ -2,6 +2,10 @@ import { Logger } from "../logs";
 import { Raisin } from "../raisin";
 import { injectCSS } from "../util";
 
+var metadata = {
+    name: "Unnamed",
+}
+
 const logger = new Logger("macadamia::multiplayer");
 
 let connections: any[] = [];
@@ -44,14 +48,18 @@ var saveToOld: string = Game.SaveTo;
     }
 
     Game.SaveTo = saveToOld;
+    Game.LoadSave();
+
     localStorage.removeItem(Game.SaveTo);
-}
+};
 
 (<any>window).JoinGame = () => {
     Game.Prompt("<h3>Join Game</h3><br>Macadamia uses a P2P system for playing multiplayer. <b>Your IP address will be shared with users in your lobby due to how the networking is managed.</b><br><br><input id=peeridinput class=block placeholder='Peer ID' style='text-align:center;background-color:rgba(0,0,0,0);color:white;width:120px;margin-bottom:10px;'>", [["Join", "window.StartJoinGame(document.getElementById('peeridinput').value)"]])
-}
+};
 
 (<any>window).StartJoinGame = (peerID: string) => {
+    Game.ClosePrompt();
+
     if (peerID == (<any>window).peer.id) {
         Game.Prompt("You can't join yourself!", []);
         return;
@@ -70,17 +78,31 @@ var saveToOld: string = Game.SaveTo;
 
     Game.SaveTo = peerID;
     (<any>window).CreateConnection(peerID);
-}
+};
+
+(<any>window).setUsername = (name: string) => {
+    localStorage.setItem('macadamiaUsername', name);
+
+    sendDataToPeers({ type: "newName", data: name });
+
+    metadata.name = name;
+
+    rebuildPlayerList();
+};
+
+(<any>window).ChangeUsername = () => {
+    Game.Prompt("<h3>Change Username</h3><br>Choose a username:<br><br><input id=nameinput class=block placeholder='Username' style='text-align:center;background-color:rgba(0,0,0,0);color:white;width:120px;margin-bottom:10px;'>", [["Change", "window.setUsername(document.getElementById('nameinput').value); Game.ClosePrompt();"]])
+};
 
 function rebuildPlayerList() {
-    let output = `${(<any>window).peer.id.slice(0, 14)}... (you)`;
+    let output = `${metadata.name} (you)`;
 
     for (var connection in connections) {
-        output += `\n${connections[connection].peer.slice(0, 14)}...`;
+        output += `\n${connections[connection].macaName}`;
     }
 
     playerListElement.innerText = output;
-    
+
     var menuArea = "";
 
     menuArea += "<a class='option' onclick='window.ShowModManager(\"mods\")'>☰ Mods & Settings</a>";
@@ -97,21 +119,27 @@ function rebuildPlayerList() {
         netcodeSettings.hosting = true;
     }
 
+    menuArea += "<a class='option' onclick='window.ChangeUsername()'>✎</a>";
+
     playerListElement.innerHTML = menuArea + "<br><br>" + playerListElement.innerHTML;
 }
 
 export async function loadMultiplayer() {
     logger.log("loading multiplayer...");
 
-    if (localStorage.getItem("multiplayer_id") == null)
-        localStorage.setItem("multiplayer_id", crypto.randomUUID());
+    if (localStorage.getItem("multiplayerID") == null || localStorage.getItem("streamerMode") == "true")
+        localStorage.setItem("multiplayerID", crypto.randomUUID());
+
+    if (localStorage.getItem("macadamiaUsername") !== null) {
+        metadata.name = <string>localStorage.getItem("macadamiaUsername");
+    }
 
     // load peerjs
     logger.log("waiting for peerjs...");
     await loadPeerJS();
     logger.log("peerjs loaded successfully!");
 
-    var peer = new (<any>window).Peer(`macadamia_${localStorage.getItem("multiplayer_id")}`);
+    var peer = new (<any>window).Peer(`macadamia_${localStorage.getItem("multiplayerID")}`);
 
     logger.log("created peer");
 
@@ -126,6 +154,8 @@ export async function loadMultiplayer() {
     console.log(`%cmacadamia::multiplayer\n%c🌐 network\n%cpeer id: %c${peer.id}\n\n%c/!\\ warning\n%cyour IP address is visible to those who join you/know your peer id!\nDO NOT HAND IT TO ANYONE THAT YOU DO NOT TRUST.`, "font-size: 0.5rem;", "color: #7289da; font-size: 1rem;", "color: #d9b99b;", "color: #fff0db;", "color: #e22; font-size: 1rem; font-weight: 700; text-shadow: #F00 1px 0 3px;", "color: #e22")
 
     let onConnection = (connection: any, connectionFromNewPeer: boolean) => {
+        connection.macaName = "Unnamed";
+        
         connection.on("open", () => {
             if (connections.length >= 4) {
                 connection.close();
@@ -146,6 +176,8 @@ export async function loadMultiplayer() {
             }
 
             connections.push(connection); // add connection to connections array
+
+            connection.send({ type: "newName", data: metadata.name });
 
             rebuildPlayerList();
 
@@ -192,6 +224,12 @@ export async function loadMultiplayer() {
                         if (data.data && typeof data.data === "string" && connections.length < 4) {
                             var conn = peer.connect(data.data);
                             onConnection(conn, true);
+                        }
+                        break;
+                    case "newName":
+                        if (data.data && typeof data.data === "string") {
+                            connection.macaName = data.data;
+                            rebuildPlayerList();
                         }
                     default:
                         return;

@@ -35,7 +35,7 @@ let pages: { [key: string]: () => string } = {
     },
 
     settings() {
-        return "&lt;no settings&gt;";
+        return `<a class="option${localStorage.getItem("streamerMode") !== "true" ? " warning" : ""}" onclick="window.Macadamia.toggleStreamerMode(); this.innerHTML = this.innerHTML == '✕ Streamer Mode' ? '✓ Streamer Mode' : '✕ Streamer Mode'; this.className = this.className == 'option warning' ? 'option' : 'option warning';">${localStorage.getItem("streamerMode") !== "true" ? "✕ Streamer Mode" : "✓ Streamer Mode"}</a><br><small>regenerates your peer id every time you restart the game.</small><br>For changes to take effect, restart the game.`;
     },
 
     about() {

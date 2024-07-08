@@ -5,7 +5,7 @@ import { init, log, welcome } from "./logs";
 import { Mod } from "./mod";
 
 (<any>window).Macadamia = {
-    Version: "0.0.1",
+    Version: "1.0.0beta",
     Defaults: {
         // Defaults for Macadamia will go here.
     },
@@ -57,6 +57,13 @@ import { Mod } from "./mod";
         } else {
             (<any>window).Macadamia.enableMod(uuid);
         }
+    },
+    toggleStreamerMode() {
+        if (localStorage.getItem("streamerMode") === "true") {
+            localStorage.setItem("streamerMode", "false");
+        } else {
+            localStorage.setItem("streamerMode", "true");
+        }
     }
 };
 
@@ -65,7 +72,7 @@ import { Mod } from "./mod";
     name: "Macadamia",
     description: "Macadamia",
     author: "RedBigz",
-    version: "1.0.0beta",
+    version: (<any>window).Macadamia.Version,
     icon: "https://redbigz.com/lfs/macadamia/res/logo.png"
 } as ModManifest, enabled: true}}; // { [key: string]: { mod: Mod, manifest: { uuid: string; }, enabled: boolean } }
 
