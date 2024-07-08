@@ -137,8 +137,8 @@ export async function loadMultiplayer() {
                 logger.log(`received connection from ${connection.peer}`);
             }
 
-            if (!connectionFromNewPeer) {
-                sendDataToPeers({ type: "newPeer", peer: connection.peer })
+            if (!connectionFromNewPeer && netcodeSettings.hosting) {
+                // sendDataToPeers({ type: "newPeer", peer: connection.peer })
 
                 for (var otherConnection in connections) {
                     connection.send({ type: "newPeer", data: connections[otherConnection].peer });
