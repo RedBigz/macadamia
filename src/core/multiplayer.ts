@@ -107,16 +107,17 @@ function rebuildPlayerList() {
 
     menuArea += "<a class='option' onclick='window.ShowModManager(\"mods\")'>☰ Mods & Settings</a>";
 
-    menuArea += "<a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>";
+    if (connections.length == 0)
+        netcodeSettings.hosting = true;
 
     if (!netcodeSettings.hosting) {
         if (connections.length > 0)
             menuArea += "<a class='option' onclick='window.CloseConnection()'>✕ Leave</a>";
     }
 
-    if (connections.length == 0) {
+    if (netcodeSettings.hosting) {
+        menuArea += "<a class='option' onclick='window.ShowInvitePrompt()'>➕ Invite</a>";
         menuArea += "<a class='option' onclick='window.JoinGame()'>⮐ Join Game</a>";
-        netcodeSettings.hosting = true;
     }
 
     menuArea += "<a class='option' onclick='window.ChangeUsername()'>✎</a>";
@@ -155,7 +156,7 @@ export async function loadMultiplayer() {
 
     let onConnection = (connection: any, connectionFromNewPeer: boolean) => {
         connection.macaName = "Unnamed";
-        
+
         connection.on("open", () => {
             if (connections.length >= 4) {
                 connection.close();
