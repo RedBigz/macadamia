@@ -300,7 +300,12 @@ export async function loadMultiplayer() {
             if (!building.vanilla) return;
 
             (<any>window).DO_NOT_RPC = true; // TODO: Find a better way to do this
+
+            var oldBuyMode = Game.buyMode;
+            Game.buyMode = 1;
             building.buy(data.amount);
+            Game.buyMode = oldBuyMode;
+            
             (<any>window).DO_NOT_RPC = false;
         });
 
