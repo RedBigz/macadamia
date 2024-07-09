@@ -1,0 +1,23 @@
+name: Build Macadamia
+on: [push]
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Setup Node.js
+              uses: actions/setup-node@v2
+              with:
+                node-version: 20
+            - name: Setup Python
+              uses: actions/setup-python@v2
+              with:
+                python-version: 3.11
+            - name: Install dependencies
+              run: npm install
+            - name: Build
+              run: npm run build
+            - name: Upload artifact
+              uses: actions/upload-artifact@v2
+              with:
+                name: macadamia.js
+                path: out/macadamia.js

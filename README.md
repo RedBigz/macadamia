@@ -7,6 +7,9 @@ Macadamia is a custom mod loader for Cookie Clicker which allows players to play
 Head over to the [releases](https://git.redbigz.com/red/macadamia/releases) page to download the latest version of Macadamia.
 
 ### Compiled (I want the bleeding edge)
+**UPDATE: Actions has been added, so if you don't want to get your hands dirty, look for an artifact [here](https://git.redbigz.com/red/macadamia/actions).**
+
+
 Run these commands in order:
 
 *Windows (posh)*
