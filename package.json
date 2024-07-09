@@ -5,6 +5,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "build": "python build.py",
+    "buildLinux": "python3 build.py",
     "minify": "npx uglifyjs --compress --mangle --output ./out/macadamia.min.js ./out/macadamia.js"
   },
   "repository": {
