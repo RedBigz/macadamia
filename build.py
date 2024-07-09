@@ -5,7 +5,7 @@ if os.path.exists("out"):
 
 os.makedirs("out", exist_ok=True)
 
-os.system("tsc")
+os.system("npx tsc")
 
 with open("./out/macadamia.js.part", "r", encoding="utf8") as macadamiapart, open("./out/macadamia.js", "w+", encoding="utf8") as macadamiafile, open("loader.js", "r", encoding="utf8") as loader:
     cpr = macadamiapart.read()
