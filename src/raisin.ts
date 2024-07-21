@@ -135,7 +135,7 @@ export class ModRaisin extends Raisin {
     }
 
     transpile(transpiler: Function): this {
-        this.body = ["if (window.MacadamiaModList['" + this.modID + "'].enabled) {", ...transpiler(this.body), "else {", ...this.body, "}"];
+        this.body = ["if (window.MacadamiaModList['" + this.modID + "'].enabled) {", ...transpiler(this.body), "} else {", ...this.body, "}"];
         return this;
     }
 }
